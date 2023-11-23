@@ -1,5 +1,3 @@
-<img src="assets/preview_graph.png" width="100%" height="100%">
-
 ![GitHub last commit](https://img.shields.io/github/last-commit/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![GitHub issues](https://img.shields.io/github/issues-raw/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/LordWhiskas/Visualization-Capsule-Neural-Networks)
@@ -19,6 +17,8 @@
 This project is developed as part of my Bachelor's degree at Technical University in Kosice, under the guidance of Dominic Vranay.
 
 ## Project Status
+
+<img src="assets/preview_graph.png" width="100%" height="100%">
 
 ⚠️ This project is currently in development. The functionality and features provided are stable, but the project is being actively improved.
 
