@@ -20,7 +20,7 @@ This project is developed as part of my Bachelor's degree at Technical Universit
 
 ⚠️ This project is currently in development. The functionality and features provided are stable, but the project is being actively improved.
 
-![Preview Graph](/assets/preview_graph.png "Preview Graph")
+<img src="assets/preview_graph.png" width="100%" height="100%">
 
 ## Overview
 
