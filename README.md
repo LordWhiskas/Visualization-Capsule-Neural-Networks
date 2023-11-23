@@ -1,7 +1,6 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![GitHub issues](https://img.shields.io/github/issues-raw/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/LordWhiskas/Visualization-Capsule-Neural-Networks)
-![GitHub](https://img.shields.io/github/license/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![Status](https://img.shields.io/badge/status-in%20development-orange)
 
 # Visualization-Capsule-Neural-Networks
