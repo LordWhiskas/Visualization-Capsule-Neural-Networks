@@ -1,0 +1,135 @@
+.img-zoom-container {
+    position: relative;
+    overflow: hidden; /* Ensure that the zoomed image does not exceed the container */
+    /* Set a fixed width and height or max-width and max-height for the container if needed */
+}
+
+.img-zoom {
+    transition: transform 0.5s ease; /* Smooth transition for zoom effect */
+    display: block; /* Display block to remove bottom space */
+    /*margin: 0 auto; !* Center the image in the container *!*/
+    width: 50%; /* Set the width of the image */
+    height: auto; /* Set the height to auto to maintain aspect ratio */
+    max-width: 200%; /* Maximum width of the image */
+    max-height: auto; /* Maximum height to maintain aspect ratio */
+}
+
+.img-zoom:hover {
+    transform: scale(1.75); /* Scale up the image to 150% when hovered */
+}
+
+.center-on-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    background-color: #121212;
+    color: white;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.main-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.main-image {
+    flex: 2; /* Main image takes up twice as much space as the side containers */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    /* Keep the rest of your .main-image styles here */
+}
+
+.image-and-button-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.left-container, .right-container {
+    flex: 1; /* Both left and right containers take up equal space */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: start;
+    padding: 20px;
+}
+
+.cards-container {
+    display: flex;
+    justify-content: space-around;
+    width: 80%;
+    margin: 20px;
+}
+
+.card {
+    background-color: #1e1e1e;
+    padding: 20px;
+    width: 60%;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+.card-graph {
+    background-color: #1e1e1e;
+    padding: 20px;
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+}
+
+.card img { /* Assuming you want to use images for your graphs */
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.card-title {
+    color: #fff;
+    margin-bottom: 15px;
+    font-size: medium;
+    text-align: center;
+}
+
+.button-container {
+    display: flex;
+}
+
+.arrow-button {
+    background-color: #000000;
+    display: flex;
+    border-radius: 50%;
+    width: 50px; /* You can adjust the size */
+    height: 50px;
+    margin: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    font-size: 24px; /* Adjust the size of the arrow */
+    outline: none;
+    color: white;
+    border: 2px solid white;
+    align-items: center;
+    justify-content: center;
+}
+
+.arrow-button:active {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
