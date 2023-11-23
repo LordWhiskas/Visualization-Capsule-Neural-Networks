@@ -18,7 +18,7 @@ This project is developed as part of my Bachelor's degree at Technical Universit
 
 ## Project Status
 
-This project is currently in development. The functionality and features provided are stable, but the project is being actively improved.
+⚠️ This project is currently in development. The functionality and features provided are stable, but the project is being actively improved.
 
 ![Preview Graph](/assets/preview_graph.png "Preview Graph")
 
