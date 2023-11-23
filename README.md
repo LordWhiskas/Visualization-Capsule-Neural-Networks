@@ -64,7 +64,7 @@ ___Clone___ the repository and ___install___ the required packages:
 >
 > After changing image click on ```update graph``` to see new graph
 
-# Changing model 
+## Changing model 
 
 ❗Use custom sampler ```MySampler``` for balancing classes in your dataset. It will improve your model's accuracy.
 
