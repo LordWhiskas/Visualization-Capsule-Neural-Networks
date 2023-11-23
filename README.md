@@ -66,7 +66,7 @@ ___Clone___ the repository and ___install___ the required packages:
 
 # Changing model 
 
-❗Use custom sampler ```MySampler``` for balancing classes in your dataset. It will improve your model accuracy.
+❗Use custom sampler ```MySampler``` for balancing classes in your dataset. It will improve your model's accuracy.
 
 ## Acknowledgments
 
