@@ -35,7 +35,7 @@ This repository contains a Python implementation of a Capsule Neural Network (Ca
 
 ## Requirements
 
-- Python 3.11
+- Python
 - PyTorch
 - NetworkX
 - Dash
