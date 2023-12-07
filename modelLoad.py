@@ -2,7 +2,7 @@ import os
 
 import torch
 import networkx as nx
-from dash import dcc, html, Input, Output, Dash, callback_context, State
+from dash import dcc, html, Input, Output, Dash, dash, callback_context, State
 from dash.exceptions import PreventUpdate
 import plotly.graph_objects as go
 from matplotlib import pyplot as plt
@@ -10,8 +10,6 @@ import dash_bootstrap_components as dbc
 from capsule import CapsuleModel, getMNIST
 from threading import Thread
 
-
-# TODO: Visualizing parametrs
 
 class GraphVisualizer:
     def __init__(self):
