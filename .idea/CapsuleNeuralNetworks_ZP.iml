@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231025_220311-ll7b68co/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231031_113058-6e1q7iau/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231102_091745-j1h598y2/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231102_092631-m5y1ydx1/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231102_092907-6yph8blk/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231102_092944-t66nt1ak/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231102_150050-r7d6zdae/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231103_181153-6sngqhvg/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231108_155817-bzqtay1m/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231108_160005-f3k57y4o/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231112_190211-d8p8sz2d/tmp" />
+      <excludeFolder url="file://$MODULE_DIR$/wandb/run-20231121_180735-95syvmgt/tmp" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="angular" level="application" />
+    <orderEntry type="library" name="tachyons" level="application" />
+    <orderEntry type="library" name="d3" level="application" />
+    <orderEntry type="library" name="angularjs-slider" level="application" />
+    <orderEntry type="library" name="d3.v6" level="application" />
+  </component>
+</module>
