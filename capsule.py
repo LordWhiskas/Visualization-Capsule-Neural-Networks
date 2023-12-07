@@ -6,7 +6,10 @@ from torch import nn
 import torch.nn.functional as F
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+<<<<<<< HEAD
 import cProfile
+=======
+>>>>>>> 6d85ce9655f2d267e71b3ef6ab8e4794bece8ecc
 
 
 class MySampler(torch.utils.data.Sampler):  # Custom sampler for balancing classes in each batch
@@ -116,7 +119,10 @@ class RoutingLayer(nn.Module):
         self.listC = []
 
     def forward(self, u):  # u = [batch, num_caps_in, caps_dim_in]
+<<<<<<< HEAD
         self.listC = []
+=======
+>>>>>>> 6d85ce9655f2d267e71b3ef6ab8e4794bece8ecc
         u_hat = torch.einsum('ijnm, bin->bijm', self.weight,
                              u)  # u_hat = [batch, num_caps_in, num_caps_out, caps_dim_out]
         b = u.new_zeros(u.shape[0], self.caps_in, self.caps_out)  # b = [batch, num_caps_in, num_caps_out]
@@ -186,6 +192,7 @@ class CapsuleModel(nn.Module):
 
     def getC(self, x):
         caps = self.conv1(x)  # Feature extraction using convolutional blocks
+<<<<<<< HEAD
 
         caps = self.primaryCaps(
             caps)  # Primary caps layer, which changes shape of data from [channel, height, width] to [num_caps,
@@ -194,6 +201,14 @@ class CapsuleModel(nn.Module):
         caps = self.dropout(caps)
         _ = self.routing_final(caps)  # final routing layer, where we get the capsule for each class
         result = self.routing_final.listC
+=======
+        caps = self.primaryCaps(caps)  # Primary caps layer
+        caps = self.routing(caps)
+        caps = self.dropout(caps)
+        self.routing_final(caps)
+        result = self.routing_final.listC
+        self.routing_final.listC = []
+>>>>>>> 6d85ce9655f2d267e71b3ef6ab8e4794bece8ecc
         return result
 
 
@@ -253,7 +268,11 @@ def train(lr=0.0035, coef=0.7, conv_size=None, capdim=None):
     if conv_size is None:
         conv_size = [8, 16]
     if capdim is None:
+<<<<<<< HEAD
         capdim = [(72, 4), (20, 15), (10, 20)]  # capdim = [(72, 4), (20, 15), (10, 20)]
+=======
+        capdim = [(72, 4), (10, 20)]  # capdim = [(72, 4), (20, 15), (10, 20)]
+>>>>>>> 6d85ce9655f2d267e71b3ef6ab8e4794bece8ecc
     loaders = getMNIST()  # loader for dataset
     in_channels = 1  # number of channels of input images
     # recon = Recon(capdim=capdim[-1], out_channels=in_channels).to(device)  # simple recon
@@ -321,6 +340,7 @@ def train(lr=0.0035, coef=0.7, conv_size=None, capdim=None):
 
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     wandb.login(key="4ec84e680770fa5ef52e55bac394efac593c7552")
     device = "cuda:0"
     try:
@@ -328,3 +348,9 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"An error occurred: {e}")
     wandb.finish()
+=======
+    wandb.login(key="YOUR_WANDB_KEY")
+    device = "cuda:0"
+    train()
+    wandb.finish()
+>>>>>>> 6d85ce9655f2d267e71b3ef6ab8e4794bece8ecc
