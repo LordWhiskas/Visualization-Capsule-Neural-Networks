@@ -1,10 +1,10 @@
 setuptools>=65.5.1
 wheel
 
-numpy==1.25.2
-opencv-python==4.8.1.78
-torch==2.0.1
-torchvision==0.15.2
+numpy==1.25.2 --only-binary=:all:
+opencv-python==4.8.1.78 --only-binary=:all:
+torch==2.0.1 --only-binary=:all:
+torchvision==0.15.2 --only-binary=:all:
 
 visdom~=0.2.4
 matplotlib~=3.7.1
