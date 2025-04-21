@@ -3,8 +3,8 @@ wheel
 
 numpy==1.25.2 --only-binary=:all:
 opencv-python==4.8.1.78 --only-binary=:all:
-pip install torch==2.0.1+cpu.cxx11.abi --extra-index-url https://download.pytorch.org/whl/cpu
-torchvision==0.15.2+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.15.2 --extra-index-url https://download.pytorch.org/whl/cpu
 
 matplotlib~=3.7.1
 python-dotenv~=1.0.0
