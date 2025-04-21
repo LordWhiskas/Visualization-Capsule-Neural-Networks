@@ -1,11 +1,9 @@
-/data/
 /wandb/
+/data
 test.py
 test_1.py
 test_2.py
 hierarchy_visualization.py
-index.html
 image.png
 data.json
-03.mo
 0.mo
