@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Neural Network Visualization</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .node {
+            fill: #4CAF50;
+            stroke: #fff;
+            stroke-width: 1.5px;
+        }
+
+        .link {
+            stroke: #999;
+            stroke-opacity: 0.6;
+        }
+    </style>
+</head>
+<body>
+<div id="info" style="position: absolute"></div>
+<svg width="100%" height="100%"></svg>
+<script>
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    d3.json('data.json').then(data => {
+        const nodesLeft = data.nodesLeft.map((node, i) => ({
+            ...node,
+            x: 100,
+            y: (i + 1) * (height / (data.nodesLeft.length + 1))
+        }));
+
+        const nodesRight = data.nodesRight.map((node, i) => ({
+            ...node,
+            x: width - 100,
+            y: (i + 1) * (height / (data.nodesRight.length + 1))
+        }));
+
+        // Создайте links на основе данных из JSON файла
+        const links = data.links.map(link => ({
+            ...link,
+            source: nodesLeft.find(n => n.id === link.source),
+            target: nodesRight.find(n => n.id === link.target)
+        }));
+
+        const svg = d3.select('svg');
+        const container = svg.append('g');
+
+        svg.call(d3.zoom().on("zoom", (event) => {
+            container.attr("transform", event.transform);
+        }));
+
+        container.selectAll(".link")
+            .data(links)
+            .enter().append("line")
+            .attr("class", "link")
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y)
+            .style("stroke-width", d => d.strength * 5)
+            .style("stroke", d => d3.interpolateBlues(d.strength));
+
+        container.selectAll(".node-left")
+            .data(nodesLeft)
+            .enter().append("circle")
+            .attr("class", "node-left")
+            .attr("r", 5)
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .on("click", function (event, d) { // Добавляем обработчик событий здесь
+                highlightNode(d.id);
+            });
+
+        container.selectAll(".node-right")
+            .data(nodesRight)
+            .enter().append("circle")
+            .attr("class", "node-right")
+            .attr("r", 5)
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y)
+            .on("click", function (event, d) { // И здесь
+                highlightNode(d.id);
+            });
+
+        function highlightNode(nodeId) {
+            // Сбросить стили всех связей
+            container.selectAll(".link")
+                .style("stroke-opacity", 0.1)
+                .style("stroke", "#999");
+
+            // Выделить связи, связанные с выбранным узлом
+            container.selectAll(".link")
+                .filter(d => d.source.id === nodeId || d.target.id === nodeId)
+                .style("stroke-opacity", 1)
+                .style("stroke", "red");
+
+            // Отобразить информацию об узле где-то на странице
+            document.getElementById("info").textContent = "Информация об узле " + nodeId;
+        }
+
+    });
+
+
+    // Вызовите эту функцию с индексом связи и новой силой, чтобы обновить отображение
+    // Например, чтобы изменить свойства первой связи:
+    // updateLinkProperties(0, 0.5); // устанавливает толщину линии в 2.5 и цвет по шкале
+</script>
+</body>
+</html>

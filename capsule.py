@@ -90,7 +90,7 @@ def squash(s):  # original squash function from Sara Sabour
 
 
 class PrimaryCaps(nn.Module):
-    def __init__(self, in_channels, kernel, capsules, cap_dim, chan=18):
+    def __init__(self, in_channels, kernel, capsules, cap_dim, chan=18):  # decrease chan
         super(PrimaryCaps,
               self).__init__()  # Primary caps layer, which uses one convolution and reshapes the data into capsules
         self.capsules = capsules
@@ -112,21 +112,34 @@ class RoutingLayer(nn.Module):
         self.weight = nn.Parameter(torch.randn(caps_in, caps_out, size_in, size_out), requires_grad=True)
         self.r = iterations
         self.sfmx = nn.Softmax(dim=1)
-        self.c = 0
-        self.listC = []
+        self.last_iteration_c = torch.zeros((1, caps_in, caps_out), requires_grad=False)
 
     def forward(self, u):  # u = [batch, num_caps_in, caps_dim_in]
-        self.listC = []
         u_hat = torch.einsum('ijnm, bin->bijm', self.weight,
                              u)  # u_hat = [batch, num_caps_in, num_caps_out, caps_dim_out]
         b = u.new_zeros(u.shape[0], self.caps_in, self.caps_out)  # b = [batch, num_caps_in, num_caps_out]
+
         for i in range(self.r):
-            self.c = self.sfmx(b)  # c = [batch, num_caps_in, num_caps_out]
-            self.listC.append(self.c)
-            v = squash(torch.einsum('bij,bijm->bjm', self.c, u_hat))  # v = [batch, num_caps_out, caps_dim_out]
+            c = self.sfmx(b)  # c = [batch, num_caps_in, num_caps_out]
+            v = squash(torch.einsum('bij,bijm->bjm', c, u_hat))  # v = [batch, num_caps_out, caps_dim_out]
+
             if i < self.r - 1:
                 a = torch.einsum('bjm,bijm->bij', v, u_hat)  # a = [batch, num_caps_in, num_caps_out]
                 b = b + a
+            else:
+                self.last_iteration_c = c.clone()
+
+            # print(f"Iteration {i}:")
+            # print(f"b: {b}")
+            # print(f"c: {c}")
+            # print(f"Sum of routing weights (c.sum(dim=1)): {c.sum(dim=1)}")
+            # print("--------")
+            #
+            # print(f"Shape of u: {u.shape}")
+            # print(f"Shape of u_hat: {u_hat.shape}")
+            # print(f"Shape of v: {v.shape}")
+            # print("========\n")
+
         return v  # v = [batch, num_caps_out, caps_dim_out]
 
 
@@ -150,51 +163,61 @@ class CapsuleModel(nn.Module):
     def __init__(self, conv, capdim, in_channels):
         super(CapsuleModel, self).__init__()
         self.classes = capdim[-1][0]
-        convs = [convol(in_channels, conv[0], 3)]  # first convolutional block
-        for i in range(len(conv) - 1):  # for loop to create the rest of the convolutional blocks
-            convs.append(convol(conv[i], conv[i + 1], 3))  # according to channels in conv argument
+        convs = [convol(in_channels, conv[0], 3)]
+        for i in range(len(conv) - 1):
+            convs.append(convol(conv[i], conv[i + 1], 3))
         self.conv1 = nn.Sequential(*convs)
-        #  the dimensions and number of capsules in each layer are taken from capsdim variable, where the first number
-        #  represents the number of capsules and the second their dimensionality
-        self.primaryCaps = PrimaryCaps(conv[-1], 3, capdim[0][0], capdim[0][1])  # primary caps creation layer
-        routings = []
-        for i in range(len(capdim) - 2):
-            routings.append(RoutingLayer(capdim[i][0], capdim[i + 1][0], capdim[i][1], capdim[i + 1][1]))
-            # routings.append(nn.Dropout(0.2))
+        self.primaryCaps = PrimaryCaps(conv[-1], 3, capdim[0][0], capdim[0][1])
+        routings = [RoutingLayer(capdim[i][0], capdim[i + 1][0], capdim[i][1], capdim[i + 1][1]) for i in range(len(capdim) - 2)]
         self.routing = nn.Sequential(*routings)
-        self.dropout = nn.Dropout(0.2)  # dropout layer to help with overfitting
+        self.dropout = nn.Dropout(0.2)
         self.routing_final = RoutingLayer(capdim[-2][0], capdim[-1][0], capdim[-2][1], capdim[-1][1])
+        self.number_of_capsules_from_first_layer = capdim[0][0]
+        self.activations_from_first_layer = []
+        self.primary_feature_map = None
+        self.primary_caps_spatial_shape = None
 
     def forward(self, x):
-        caps = self.conv1(x)  # Feature extraction using convolutional blocks
-
-        caps = self.primaryCaps(
-            caps)  # Primary caps layer, which changes shape of data from [channel, height, width] to [num_caps,
-        # caps_dim]
+        self.activations_from_first_layer = []
+        x_conv = self.conv1(x)
+        fmap = self.primaryCaps.conv(x_conv)
+        self.primary_feature_map = fmap.detach().cpu()
+        B, C, H, W = fmap.shape
+        self.primary_caps_spatial_shape = (H, W)
+        caps = fmap.permute(0, 2, 3, 1).contiguous().view(B, -1, self.primaryCaps.cap_dim)
+        caps = squash(caps)
+        self.activations_from_first_layer = caps[:, :self.number_of_capsules_from_first_layer, :].detach()
         caps = self.routing(caps)
         caps = self.dropout(caps)
-        caps = self.routing_final(caps)  # final routing layer, where we get the capsule for each class
+        caps = self.routing_final(caps)
         return caps
 
-    # def get_activations(self, x):
-    #     caps = self.conv1(x)  # Feature extraction using convolutional blocks
-    #     caps = self.primaryCaps(caps)  # Primary caps layer
-    #     caps = self.routing(caps)
-    #     caps = self.dropout(caps)
-    #     caps = self.routing_final(caps)  # Get the final capsule activations for each class
-    #     return caps
+    def get_feature_map(self):
+        return self.primary_feature_map
+
+    def get_caps_spatial_shape(self):
+        return self.primary_caps_spatial_shape
+
+    def get_activations(self):
+        return self.activations_from_first_layer
 
     def getC(self, x):
-        caps = self.conv1(x)  # Feature extraction using convolutional blocks
+        caps = self.conv1(x)  # Feature extraction
+        caps = self.primaryCaps(caps)  # Primary caps layer
 
-        caps = self.primaryCaps(
-            caps)  # Primary caps layer, which changes shape of data from [channel, height, width] to [num_caps,
-        # caps_dim]
-        caps = self.routing(caps)
-        caps = self.dropout(caps)
-        _ = self.routing_final(caps)  # final routing layer, where we get the capsule for each class
-        result = self.routing_final.listC
-        return result
+        all_last_iteration_coefficients = []
+
+        # For each routing layer
+        for routing_layer in self.routing:
+            caps = routing_layer(caps)
+            all_last_iteration_coefficients.append(routing_layer.last_iteration_c)
+
+        caps = self.routing_final(caps)  # final routing layer
+        all_last_iteration_coefficients.append(self.routing_final.last_iteration_c)
+
+        # print("All last iteration: ", all_last_iteration_coefficients)
+
+        return all_last_iteration_coefficients
 
 
 class Recon(nn.Module):
@@ -253,7 +276,7 @@ def train(lr=0.0035, coef=0.7, conv_size=None, capdim=None):
     if conv_size is None:
         conv_size = [8, 16]
     if capdim is None:
-        capdim = [(72, 4), (10, 20)]  # capdim = [(72, 4), (20, 15), (10, 20)]
+        capdim = [(72, 4), (20, 15), (10, 20)]  # capdim = [(72, 4), (20, 15), (10, 20)]
     loaders = getMNIST()  # loader for dataset
     in_channels = 1  # number of channels of input images
     # recon = Recon(capdim=capdim[-1], out_channels=in_channels).to(device)  # simple recon
