@@ -39,6 +39,7 @@ class MySampler(torch.utils.data.Sampler):  # Custom sampler for balancing class
 
 
 def getMNIST(batch_size=256):
+
     transform = transforms.Compose([  # Transform for train set
         transforms.Pad(2),  # Padding to introduce small translation of image
         transforms.RandomCrop((28, 28)),  # Crop to get to original size
@@ -49,8 +50,18 @@ def getMNIST(batch_size=256):
         transforms.ToTensor(),
         transforms.Normalize((0.13066047,), (0.30810780,))
     ])
-    trainset = datasets.MNIST('data/', train=True, download=True, transform=transform)
-    testset = datasets.MNIST('data/', train=False, download=True, transform=ttM)
+    trainset = datasets.MNIST(
+        'data/',  # local cache path
+        train=True,
+        download=True,  # <-- this line tells PyTorch to fetch MNIST if it’s missing
+        transform=transform
+    )
+    trainset = datasets.MNIST(
+        'data/',  # local cache path
+        train=False,
+        download=True,  # <-- this line tells PyTorch to fetch MNIST if it’s missing
+        transform=transform
+    )
     lab = trainset.targets  # creation of sampler to make classes in batches more balanced
     sampler_init = MySampler(lab)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, num_workers=2,
