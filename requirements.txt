@@ -1,2 +1,14 @@
-dash
+setuptools>=65.5.1
+wheel
+
+numpy==1.25.2 --only-binary=:all:
+opencv-python==4.8.1.78 --only-binary=:all:
+torch==2.0.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu --only-binary=:all:
+torchvision==0.15.2+cpu --extra-index-url https://download.pytorch.org/whl/cpu --only-binary=:all:
+
+matplotlib~=3.7.1
+python-dotenv~=1.0.0
+networkx~=2.5.1
+plotly~=5.18.0
+dash~=2.14.2
 gunicorn
