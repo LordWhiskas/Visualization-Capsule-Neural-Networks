@@ -39,7 +39,6 @@ class MySampler(torch.utils.data.Sampler):  # Custom sampler for balancing class
 
 
 def getMNIST(batch_size=256):
-
     transform = transforms.Compose([  # Transform for train set
         transforms.Pad(2),  # Padding to introduce small translation of image
         transforms.RandomCrop((28, 28)),  # Crop to get to original size
@@ -50,18 +49,8 @@ def getMNIST(batch_size=256):
         transforms.ToTensor(),
         transforms.Normalize((0.13066047,), (0.30810780,))
     ])
-    trainset = datasets.MNIST(
-        'data/',  # local cache path
-        train=True,
-        download=True,  # <-- this line tells PyTorch to fetch MNIST if it’s missing
-        transform=transform
-    )
-    trainset = datasets.MNIST(
-        'data/',  # local cache path
-        train=False,
-        download=True,  # <-- this line tells PyTorch to fetch MNIST if it’s missing
-        transform=transform
-    )
+    trainset = datasets.MNIST('data/', train=True, download=True, transform=transform)
+    testset = datasets.MNIST('data/', train=False, download=True, transform=ttM)
     lab = trainset.targets  # creation of sampler to make classes in batches more balanced
     sampler_init = MySampler(lab)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size, num_workers=2,
@@ -346,7 +335,7 @@ def train(lr=0.0035, coef=0.7, conv_size=None, capdim=None):
         acc = correct / total
         if val_acc_max < acc:
             val_acc_max = acc
-            torch.save(model.state_dict(), device[-1] + "3.mo")
+            torch.save(model.state_dict(), "capsnet_best.pth")
         val_loss = sum(val_loss) / len(val_loss)
         print(
             "Epoch %d, train_loss %4.4f, val_loss %4.4f, acc %4.4f, time %4.2f" % (

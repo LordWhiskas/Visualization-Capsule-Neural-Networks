@@ -1,14 +1,11 @@
-setuptools>=65.5.1
-wheel
-
-numpy==1.25.2 --only-binary=:all:
-opencv-python==4.8.1.78 --only-binary=:all:
-https://download.pytorch.org/whl/cpu-cxx11-abi/torch-2.1.0+cpu.cxx11.abi-cp311-cp311-linux_x86_64.whl
-torchvision==0.15.2 --extra-index-url https://download.pytorch.org/whl/cpu
-
+opencv-python~=4.8.1.78
+numpy~=1.25.2
+torch~=2.0.1+cu118
+visdom~=0.2.4
 matplotlib~=3.7.1
+torchvision~=0.15.2
+wandb~=0.11.2
 python-dotenv~=1.0.0
 networkx~=2.5.1
 plotly~=5.18.0
 dash~=2.14.2
-gunicorn

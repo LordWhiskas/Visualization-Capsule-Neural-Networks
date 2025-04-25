@@ -1,163 +1,122 @@
-/* General Styles */
-body {
+html, body {
     margin: 0;
     padding: 0;
-    font-family: 'Arial', sans-serif;
-    background-color: #ffffff;
-    color: white;
-}
-
-.container, .main-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    box-sizing: border-box;
 }
 
 .main-container {
-    flex-direction: row; /* Align left and right containers side by side with the main graph */
-    overflow: hidden; /* Prevent scrolling on the main container */
-    height: 100vh; /* Use the full viewport height */
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
-/* Left and Right Containers */
 .left-container, .right-container {
-    flex: 1; /* Adjust flex basis to manage size */
-    max-width: 25%; /* Maximum width */
-    min-width: 200px; /* Minimum width to prevent content from being too squeezed */
-    overflow-y: auto; /* Allow vertical scrolling if necessary */
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-}
-
-/* Graph Container */
-.main-image {
-    flex: 3; /* Allows the graph to take more space */
-    max-height: 100%; /* Limit height to viewport */
-}
-
-.image-and-button-container {
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* This will push the button container to the bottom */
-    height: 100%; /* Full height to enable justify-content */
-    padding: 20px; /* Add padding for spacing */
-}
-
-/* Graph Styles */
-#graph .dash-graph {
-    height: calc(100vh - 40px); /* Adjust height based on your header/footer sizes */
-    width: 100%;
-}
-
-/* Image Zoom Container */
-/*.img-zoom-container {*/
-/*    max-width: 100%; !* Ensure it does not exceed the width of its parent *!*/
-/*    max-height: 100%; !* Optional: Ensure it does not exceed the height of its parent *!*/
-/*    overflow: hidden;*/
-/*}*/
-
-.img-zoom {
-    transition: transform 0.5s ease-in-out; /* Smooth transition for zoom effect */
-    display: block; /* Display block to remove bottom space */
-    width: 100%; /* Full width of the container */
-    height: auto; /* Maintain aspect ratio */
-    max-width: 200%; /* Maximum width for zoom effect */
-    object-fit: contain; /* Maintain aspect ratio of the image */
-}
-
-.img-zoom:hover {
-    transform: scale(1.2); /* Scale up the image to 120% when hovered */
-    filter: drop-shadow(0 0 8px rgba(0,0,0,0.2));
-}
-
-.update-button-container {
-    display: flex;
-    justify-content: center; /* Center the update button horizontally */
-    margin-top: 20px; /* Add some space above the update button */
-    margin-bottom: 20px; /* Add some space below the update button */
-}
-
-/* Cards and Buttons */
-.card, .card-graph {
-    background-color: #ffffff;
     padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    gap: 20px;
+    width: 300px;
+    min-width: 260px;
+    max-width: 320px;
+    overflow-y: auto;
+    background-color: #f9f9f9;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
-.card img, .card-graph img {
-    width: 100%;
-    height: auto;
-    border-radius: 4px;
+.main-image {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 10px;
+}
+
+.dash-graph {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 
 .card-title {
-    color: #000000;
-    margin-bottom: 15px;
-    font-size: 1rem; /* Responsive font size */
+    font-size: 16px;
+    font-weight: bold;
     text-align: center;
+    margin-bottom: 10px;
+}
+
+.img-zoom img {
+    width: 100%;
+    height: auto;
+    border-radius: 4px;
+    transition: none !important; /* отключить zoom эффект */
+    object-fit: contain;
+}
+
+.arrow-button, .update-button-style {
+    background-color: #000;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.arrow-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.arrow-button:hover,
+.update-button-style:hover {
+    background-color: #444;
 }
 
 .button-container {
     display: flex;
-    justify-content: space-between; /* Place arrow buttons at the ends */
-    width: 50%; /* Span the full width */
-    margin: 0 auto;
+    justify-content: space-between;
+    margin-top: 10px;
 }
 
-.arrow-button {
-    background-color: #000000;
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    font-size: 1rem; /* Responsive font size */
-    color: white;
-    border: 2px solid #000000;
-    align-items: center;
+.update-button-container {
+    display: flex;
     justify-content: center;
-    min-width: 50px; /* Minimum width for the button */
-    min-height: 50px; /* Minimum height for the button */
+    margin: 10px 0;
 }
 
-.arrow-button:active {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/*!* Performance Metric *!*/
-/*#performance_metric {*/
-/*    width: 100%;*/
-/*    padding: 10px;*/
-/*    box-sizing: border-box; !* Include padding and border in the element's total width and height *!*/
-/*}*/
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .arrow-button {
-        font-size: 0.8rem; /* Smaller font size on mobile */
-    }
-    /* Add additional responsive styles as needed */
-}
-
-.update-button-style {
-    background-color: #000000;
-    border-radius: 25px; /* Gives a pill-like shape */
-    padding: 10px 20px; /* Vertical and horizontal padding */
-    font-size: 1rem; /* Sets the font size */
-    color: white;
-    border: 2px solid #000000;
-    cursor: pointer;
-    outline: none;
+.upload-area {
+    background-color: #e9ecef;
+    border: 2px dashed #aaa;
+    border-radius: 8px;
+    padding: 20px;
     text-align: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
 
-.update-button-style:hover {
-    background-color: #333333; /* Darkens the button on hover */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+.upload-area:hover {
+    background-color: #dfe3e6;
 }
 
-.update-button-style:active {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Creates a pressed effect */
+@media screen and (max-width: 1000px) {
+    .main-container {
+        flex-direction: column;
+    }
+    .left-container, .right-container {
+        flex-direction: row;
+        width: 100%;
+        overflow-x: auto;
+    }
 }

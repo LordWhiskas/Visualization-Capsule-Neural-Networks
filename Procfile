@@ -1,1 +1,0 @@
-web: gunicorn modelLoad:graph_app.app.server --workers 1

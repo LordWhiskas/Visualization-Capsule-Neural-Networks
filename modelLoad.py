@@ -1,5 +1,8 @@
+import base64
 import os
 import logging
+import tempfile
+
 import torch
 import networkx as nx
 import numpy as np
@@ -12,6 +15,7 @@ from capsule import CapsuleModel, getMNIST
 from threading import Thread
 
 logging.basicConfig(level=logging.INFO)
+
 
 class GraphVisualizer:
     def __init__(self):
@@ -122,18 +126,38 @@ class GraphVisualizer:
         fig.update_layout(autosize=True)
         return fig
 
+
 class CapsuleNetworkManager:
     def __init__(self):
         self.loading_complete = False
+        self.preload_target = 10
+        self.preloading_now = False
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
+
         self.capdim = [(72, 4), (20, 15), (10, 20)]
-        self.model = CapsuleModel(capdim=self.capdim, conv=[8, 16], in_channels=1).to(self.device)
-        self.model.load_state_dict(torch.load('03.mo'))
-        self.model.eval()
+        self.conv = [8, 16]  # <-- добавь это
+        self.in_channels = 1  # <-- и это
+
+        self.model = CapsuleModel(
+            capdim=self.capdim,
+            conv=self.conv,
+            in_channels=self.in_channels
+        ).to(self.device)
+
+        self.model_loaded = False
         self.preloaded_data = []
         self.preloaded_images = []
         self.current_loading_index = 0
         self.activations = []
+
+
+    def load_model_from_file(self, path):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Model file {path} not found.")
+        self.model.load_state_dict(torch.load(path, map_location=self.device))
+        self.model.eval()
+        self.model_loaded = True
+        logging.info(f"Model loaded from {path}")
 
     def get_primary_capsule_activation(self, capsule_idx):
         if self.activations is None or capsule_idx >= self.activations.shape[0]:
@@ -174,10 +198,8 @@ class CapsuleNetworkManager:
         return heat.squeeze().numpy()
 
     def preload_data(self, batch_size=10):
-        """
-        Предзагружает данные из MNIST, обрабатывает их моделью и сохраняет изображения.
-        """
         logging.info("Preloading data")
+        self.preloading_now = True  # <<< ДОБАВИЛИ
         assets_dir = 'assets'
         if not os.path.exists(assets_dir):
             os.makedirs(assets_dir)
@@ -203,10 +225,12 @@ class CapsuleNetworkManager:
                     plt.close()
 
                     self.current_loading_index += 1
-                    if self.current_loading_index >= 10:
+                    if self.current_loading_index >= self.preload_target:
                         self.loading_complete = True
+                        self.preloading_now = False  # <<< ДОБАВИЛИ
                         logging.info("Preloading complete")
                         return
+
 
 class GraphApp:
     def __init__(self):
@@ -238,14 +262,53 @@ class GraphApp:
                     ], className='button-container')
                 ], className='image-and-button-container'),
             ]),
+
             html.Div(id='graph', children=[dcc.Graph(id='network-graph')], className='main-image'),
+
             html.Div(id='right-side-elements', className='right-container', children=[
                 html.Div([
-                    html.Div(id='performance_metric', className='card img-zoom', children=[
-                        html.H2("Performance Metric", id='text-metric', className='card-title'),
-                        html.Img(id='Metric-image', src='assets/metric.png')
-                    ])
+                    html.Div(id='upload-container', className='card img-zoom', children=[
+                        html.H2("Load Model", className='card-title'),
+                        dcc.Upload(
+                            id='upload-model',
+                            children=html.Div([
+                                html.P("Drag and Drop or"),
+                                html.A("Select Model File (.pt or .mo)")
+                            ]),
+                            className='upload-area',
+                            multiple=False
+                        )
+                    ]),
                 ], className='image-and-button-container'),
+                html.Div(id='model-config-container', className='card img-zoom', children=[
+                    html.H2("CapsNet Config", className='card-title'),
+
+                    html.Div([
+                        html.Label("Conv layers (comma-separated)", htmlFor="conv-input"),
+                        dcc.Input(id="conv-input", type="text", value="8,16", debounce=True, style={'width': '100%'})
+                    ], style={'marginBottom': '10px'}),
+
+                    html.Div([
+                        html.Label("CapDim [(caps, dim), ...]", htmlFor="capdim-input"),
+                        dcc.Input(id="capdim-input", type="text", value="(72,4),(20,15),(10,20)", debounce=True,
+                                  style={'width': '100%'})
+                    ], style={'marginBottom': '10px'}),
+
+                    html.Button('Create Model', id='create-model-button', className='update-button-style'),
+
+                    html.Div(id='model-create-status', style={'marginTop': '10px', 'textAlign': 'center'})
+                ]),
+                html.Div(id='preload-progress-container', className='card img-zoom', children=[
+                    html.H2("Data Preloading", className='card-title'),
+                    dbc.Progress(id='preload-progress', value=1, striped=True, animated=True, style={'height': '30px'}),
+                    html.Div(id='preload-status', style={'textAlign': 'center', 'marginTop': '10px'})
+                ]),
+                dcc.Interval(id='progress-interval', interval=500, n_intervals=0),
+                html.Div(id='model-reset-container', className='card img-zoom', children=[
+                    html.H2("Reset Model", className='card-title'),
+                    html.Button("Reset Everything", id='reset-model-button', className='update-button-style'),
+                    html.Div(id='reset-status', style={'marginTop': '10px', 'textAlign': 'center'})
+                ])
             ])
         ], className='main-container')
 
@@ -315,9 +378,119 @@ class GraphApp:
             image_path = f"assets/{self.current_image}.png" if self.network_manager.loading_complete else None
             return fig, image_path, heatmap_path
 
+        @self.app.callback(
+            Output('model-create-status', 'children'),
+            Input('create-model-button', 'n_clicks'),
+            State('conv-input', 'value'),
+            State('capdim-input', 'value')
+        )
+        def create_model(n_clicks, conv_val, capdim_val):
+            if not n_clicks:
+                raise PreventUpdate
+
+            try:
+                # Парсим conv
+                conv = [int(x.strip()) for x in conv_val.split(',') if x.strip().isdigit()]
+                # Парсим capdim
+                capdim = eval(f"[{capdim_val}]")  # Преобразуем текст в список кортежей
+
+                self.network_manager.capdim = capdim
+                self.network_manager.conv = conv
+                self.network_manager.in_channels = 1
+
+                self.network_manager.model = CapsuleModel(
+                    capdim=self.network_manager.capdim,
+                    conv=self.network_manager.conv,
+                    in_channels=self.network_manager.in_channels
+                ).to(self.network_manager.device)
+                self.network_manager.model_loaded = False
+                self.network_manager.preloaded_data.clear()
+                self.network_manager.preloaded_images.clear()
+                self.network_manager.current_loading_index = 0
+                self.network_manager.loading_complete = False
+                logging.info("Model created with user parameters.")
+                return html.Div("Model created. Now upload weights or preload.")
+            except Exception as e:
+                logging.error(f"Error creating model: {str(e)}")
+                return html.Div(f"Error: {str(e)}")
+
+        @self.app.callback(
+            Output('upload-model', 'children'),
+            Input('upload-model', 'contents'),
+            State('upload-model', 'filename')
+        )
+        def load_model(uploaded_content, filename):
+            if uploaded_content is None:
+                raise PreventUpdate
+
+            content_type, content_string = uploaded_content.split(',')
+            decoded = base64.b64decode(content_string)
+
+            # Временно сохраняем загруженный файл
+            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[-1]) as tmp_file:
+                tmp_file.write(decoded)
+                tmp_model_path = tmp_file.name
+
+            try:
+                self.network_manager.load_model_from_file(tmp_model_path)
+                # Можно сразу запустить предзагрузку данных после загрузки модели
+                preload_thread = Thread(target=self.network_manager.preload_data, args=(10,))
+                preload_thread.start()
+                return html.Div(f'Model "{filename}" successfully loaded.')
+            except Exception as e:
+                logging.error(str(e))
+                return html.Div(f'Failed to load model: {str(e)}')
+
+        @self.app.callback(
+            Output('reset-status', 'children'),
+            Input('reset-model-button', 'n_clicks')
+        )
+        def reset_model(n_clicks):
+            if not n_clicks:
+                raise PreventUpdate
+
+            # Пересоздаем модель по текущим настройкам
+            self.network_manager.model = CapsuleModel(
+                capdim=self.network_manager.capdim,
+                conv=self.network_manager.conv,
+                in_channels=self.network_manager.in_channels
+            ).to(self.network_manager.device)
+
+            self.network_manager.model_loaded = False
+            self.network_manager.loading_complete = False
+            self.network_manager.preloaded_data.clear()
+            self.network_manager.preloaded_images.clear()
+            self.network_manager.activations = []
+            self.network_manager.current_loading_index = 0
+
+            import glob
+            for path in glob.glob("assets/*.png"):
+                try:
+                    os.remove(path)
+                except Exception as e:
+                    logging.warning(f"Couldn't remove file {path}: {e}")
+
+            return "Model reset. Ready for new configuration."
+
+        @self.app.callback(
+            [Output('preload-progress', 'value'),
+             Output('preload-progress', 'max'),
+             Output('preload-status', 'children')],
+            Input('progress-interval', 'n_intervals')
+        )
+        def update_progress(n):
+            if not self.network_manager.model_loaded:
+                return 0, 1, "Model not loaded"
+
+            if self.network_manager.preloading_now:
+                return (n * 10) % 100, 100, "Preloading data..."
+            else:
+                if self.network_manager.loading_complete:
+                    return 100, 100, "Preloading complete ✅"
+                else:
+                    return 0, 100, "Waiting for preloading..."
+
     def run(self):
-        preload_thread = Thread(target=self.network_manager.preload_data, args=(10,))
-        preload_thread.start()
         self.app.run_server(debug=True, dev_tools_hot_reload=False)
 
 
