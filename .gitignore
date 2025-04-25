@@ -5,13 +5,11 @@ image.png
 data.json
 0.mo
 Procfile
-0.mo
 03.mo
 04.mo
 capsnet_best.pth
-data.json
-image.png
 modelGet.py
 test.py
 test_1.py
 test_2.py
+dataPost.py
