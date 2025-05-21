@@ -6,7 +6,7 @@ import tempfile
 import torch
 import networkx as nx
 import numpy as np
-from dash import dcc, html, Input, Output, Dash, callback_context, State
+from dash import dcc, html, Input, Output, Dash, callback_context, State, dash
 from dash.exceptions import PreventUpdate
 import plotly.graph_objects as go
 from matplotlib import pyplot as plt
@@ -23,25 +23,30 @@ class GraphVisualizer:
 
     def visualize_coupling_coefficients(self, c, capdim):
         """
-        Создаёт граф с узлами и ребрами на основе коэффициентов связи (c) и конфигурации капсул (capdim).
+        Creates a graph with nodes and edges based on coupling coefficients (c) and capsule configuration (capdim).
         """
         self.G.clear()
         layers = []
-        # Добавляем узлы по слоям
+        # Add nodes for each layer
         for idx, (num_caps, cap_dim) in enumerate(capdim):
             layer_nodes = [f"L{idx}_N{i}" for i in range(num_caps)]
             layers.append(layer_nodes)
+            # Color internal layers blue, final layer red
             node_color = 'blue' if idx < len(capdim) - 1 else 'red'
             self.G.add_nodes_from(layer_nodes, layer=f'{idx}', color=node_color)
 
-        # Для каждого соединения между соседними слоями
+        # Add edges between consecutive layers based on threshold
         for idx, (layer, next_layer) in enumerate(zip(layers, layers[1:])):
-            # Приводим матрицу коэффициентов к NumPy для векторизации
             coupling_matrix = np.array(c[idx])
-            max_caps = max(len(layer), len(next_layer))
+            n_i, n_j = len(layer), len(next_layer)
+            total_possible = n_i * n_j
+            max_caps = max(n_i, n_j)
             dynamic_threshold = 1.0 / max_caps
-            # Выбираем индексы, где вес больше порога
+            # Select edges exceeding threshold
             indices = np.argwhere(coupling_matrix > dynamic_threshold)
+            selected = len(indices)
+            # print(f"[Layer {idx}→{idx + 1}] possible edges = {total_possible}, "
+            #       f"threshold = {dynamic_threshold:.4f}, selected = {selected}")
             for i, j in indices:
                 weight = coupling_matrix[i, j]
                 self.G.add_edge(
@@ -53,7 +58,7 @@ class GraphVisualizer:
                     base_color='#333333',
                     base_width=5 * weight
                 )
-        # Расчет позиций для узлов (по слоям)
+        # Assign positions for nodes by layer
         for idx, layer in enumerate(layers):
             x_offset = -1 + 2 * idx / (len(layers) - 1)
             for i, node in enumerate(layer):
@@ -63,24 +68,27 @@ class GraphVisualizer:
 
     def update_graph_highlight(self, clicked_node):
         """
-        Обновляет цвета и ширину ребер в графе для выделения узла, по которому кликнули.
+        Updates edge colors and widths to highlight the clicked node's edges.
         """
         clicked_node = clicked_node.split('<')[0]
         for u, v, data in self.G.edges(data=True):
             if clicked_node in (u, v):
-                self.G[u][v]['color'] = '#00ff00'  # Яркий зеленый для выделения
+                # Highlight edges in green and double their width
+                self.G[u][v]['color'] = '#00ff00'
                 self.G[u][v]['width'] = data['base_width'] * 2
             else:
+                # Reset to base color and width
                 self.G[u][v]['color'] = data['base_color']
                 self.G[u][v]['width'] = data['base_width']
 
     @staticmethod
     def generate_plotly_graph(G):
         """
-        Генерирует график Plotly на основе графа networkx.
+        Generates a Plotly figure from the NetworkX graph.
         """
         pos = nx.get_node_attributes(G, 'pos')
         edge_traces = []
+        # Create edge traces
         for u, v, data in G.edges(data=True):
             x0, y0 = pos[u]
             x1, y1 = pos[v]
@@ -95,6 +103,7 @@ class GraphVisualizer:
                 text=edge_hover_text,
                 hovertemplate='%{text}<extra></extra>'
             ))
+        # Create node trace
         node_x, node_y, node_color, node_info = [], [], [], []
         for node, attr in G.nodes(data=True):
             x, y = pos[node]
@@ -113,6 +122,7 @@ class GraphVisualizer:
             hoverinfo='text',
             hovertemplate='%{text}<extra></extra>'
         )
+        # Assemble figure
         fig = go.Figure(
             data=edge_traces + [node_trace],
             layout=go.Layout(
@@ -134,9 +144,11 @@ class CapsuleNetworkManager:
         self.preloading_now = False
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
 
+        # Default capsule configuration: list of (num_capsules, dim)
         self.capdim = [(72, 4), (20, 15), (10, 20)]
-        self.conv = [8, 16]  # <-- добавь это
-        self.in_channels = 1  # <-- и это
+        # Convolutional layer sizes
+        self.conv = [8, 16]
+        self.in_channels = 1
 
         self.model = CapsuleModel(
             capdim=self.capdim,
@@ -150,45 +162,45 @@ class CapsuleNetworkManager:
         self.current_loading_index = 0
         self.activations = []
 
-
     def load_model_from_file(self, path):
         if not os.path.exists(path):
             raise FileNotFoundError(f"Model file {path} not found.")
+        # Load PyTorch model state dict
         self.model.load_state_dict(torch.load(path, map_location=self.device))
         self.model.eval()
         self.model_loaded = True
         logging.info(f"Model loaded from {path}")
 
     def get_primary_capsule_activation(self, capsule_idx):
+        # Return stored primary capsule activations
         if self.activations is None or capsule_idx >= self.activations.shape[0]:
             return None
         return self.activations[capsule_idx].detach().cpu().numpy()
 
     def get_capsule_attention_map(self, capsule_idx):
-        fmap = self.model.get_feature_map()  # shape: (B, C, H, W)
+        # Generate spatial heatmap for a specific primary capsule
+        fmap = self.model.get_feature_map()  # feature map: (B, C, H, W)
         shape = self.model.get_caps_spatial_shape()  # (H, W)
         if fmap is None or shape is None:
             return None
         fmap = fmap.squeeze(0)  # (C, H, W)
-        H, W = shape  # Например, (2, 2)
-        cap_dim = self.capdim[0][1]  # 4
-        num_caps_per_spatial = fmap.shape[0] // cap_dim  # 72/4 = 18
+        H, W = shape
+        cap_dim = self.capdim[0][1]
+        num_caps_per_spatial = fmap.shape[0] // cap_dim
 
-        # Если capsule_idx приходит как номер от 0 до 71 (всего 72 капсулы),
-        # определяем, к какому месту в пространственной сетке он относится:
-        spatial_idx = capsule_idx // num_caps_per_spatial  # номер ячейки (от 0 до 3)
-        capsule_within_cell = capsule_idx % num_caps_per_spatial  # индекс капсулы внутри ячейки
+        # Map capsule index to spatial cell and within-cell index
+        spatial_idx = capsule_idx // num_caps_per_spatial
+        capsule_within_cell = capsule_idx % num_caps_per_spatial
 
-        # Переформатируем fmap: (C, H, W) -> (num_caps_per_spatial, cap_dim, H, W)
-        fmap_reshaped = fmap.view(num_caps_per_spatial, cap_dim, H, W)  # (18, 4, 2, 2)
-        # Выбираем конкретную капсулу:
-        capsule_feature = fmap_reshaped[capsule_within_cell]  # (4, 2, 2)
+        # Reshape fmap to (num_capsules, cap_dim, H, W)
+        fmap_reshaped = fmap.view(num_caps_per_spatial, cap_dim, H, W)
+        capsule_feature = fmap_reshaped[capsule_within_cell]  # (cap_dim, H, W)
 
-        # Для визуализации вычислим норму по размерности капсулы:
-        capsule_feature = capsule_feature.permute(1, 2, 0)  # (2, 2, 4)
-        heat = torch.norm(capsule_feature, dim=-1)  # (2, 2)
+        # Compute norm across capsule dimensions
+        capsule_feature = capsule_feature.permute(1, 2, 0)  # (H, W, cap_dim)
+        heat = torch.norm(capsule_feature, dim=-1)  # (H, W)
 
-        # Интерполяция до нужного размера (например, 28x28)
+        # Upsample to 28x28 for overlay
         heat = torch.nn.functional.interpolate(
             heat.unsqueeze(0).unsqueeze(0),
             size=(28, 28),
@@ -199,10 +211,9 @@ class CapsuleNetworkManager:
 
     def preload_data(self, batch_size=10):
         logging.info("Preloading data")
-        self.preloading_now = True  # <<< ДОБАВИЛИ
+        self.preloading_now = True
         assets_dir = 'assets'
-        if not os.path.exists(assets_dir):
-            os.makedirs(assets_dir)
+        os.makedirs(assets_dir, exist_ok=True)
         data = getMNIST(batch_size=batch_size)
         for images, labels in data["train"]:
             with torch.no_grad():
@@ -217,17 +228,18 @@ class CapsuleNetworkManager:
                     self.preloaded_data.append((c_processed, preds.item()))
                     self.preloaded_images.append(original_image)
 
+                    # Save original image slice
                     plt.figure()
                     plt.imshow(original_image, cmap='gray')
                     plt.axis('off')
                     image_path = os.path.join(assets_dir, f"{self.current_loading_index}.png")
-                    plt.savefig(image_path)
+                    plt.savefig(image_path, bbox_inches='tight', pad_inches=0)
                     plt.close()
 
                     self.current_loading_index += 1
                     if self.current_loading_index >= self.preload_target:
                         self.loading_complete = True
-                        self.preloading_now = False  # <<< ДОБАВИЛИ
+                        self.preloading_now = False
                         logging.info("Preloading complete")
                         return
 
@@ -352,24 +364,18 @@ class GraphApp:
                     if attn_map is not None:
                         import matplotlib.pyplot as plt
                         import os
-                        # Создаем фигуру и отображаем оригинальное изображение
                         plt.figure(figsize=(4, 4))
                         plt.imshow(original, cmap='gray')
 
-                        # Отображаем хитмап с прозрачностью, чтобы было видно оригинальное изображение
                         heatmap_im = plt.imshow(attn_map, cmap='hot', alpha=0.6)
 
-                        # Выключаем оси, чтобы они не мешали визуализации
                         plt.axis('off')
 
-                        # Добавляем заголовок с информацией о капсуле
                         plt.title(f'Activation of Capsule {cap_idx}', fontsize=12)
 
-                        # Добавляем цветовую шкалу и подписываем её
                         cbar = plt.colorbar(heatmap_im, fraction=0.046, pad=0.04)
                         cbar.set_label('Activation norm', fontsize=10)
 
-                        # Сохраняем изображение
                         heatmap_path = f"assets/heatmap_{cap_idx}.png"
                         plt.savefig(heatmap_path, bbox_inches='tight', pad_inches=0)
                         plt.close()
@@ -389,10 +395,8 @@ class GraphApp:
                 raise PreventUpdate
 
             try:
-                # Парсим conv
                 conv = [int(x.strip()) for x in conv_val.split(',') if x.strip().isdigit()]
-                # Парсим capdim
-                capdim = eval(f"[{capdim_val}]")  # Преобразуем текст в список кортежей
+                capdim = eval(f"[{capdim_val}]")
 
                 self.network_manager.capdim = capdim
                 self.network_manager.conv = conv
@@ -415,62 +419,81 @@ class GraphApp:
                 return html.Div(f"Error: {str(e)}")
 
         @self.app.callback(
-            Output('upload-model', 'children'),
-            Input('upload-model', 'contents'),
-            State('upload-model', 'filename')
+            [
+                Output('upload-model', 'children'),
+                Output('upload-model', 'contents'),
+                Output('upload-model', 'filename'),
+                Output('reset-status', 'children'),
+            ],
+            [
+                Input('upload-model', 'contents'),
+                Input('reset-model-button', 'n_clicks'),
+            ],
+            [
+                State('upload-model', 'filename'),
+            ],
+            prevent_initial_call=True
         )
-        def load_model(uploaded_content, filename):
-            if uploaded_content is None:
-                raise PreventUpdate
+        def upload_or_reset(uploaded_content, reset_clicks, filename):
+            ctx = callback_context.triggered[0]['prop_id'].split('.')[0]
 
-            content_type, content_string = uploaded_content.split(',')
-            decoded = base64.b64decode(content_string)
+            default_children = html.Div([
+                html.P("Drag and Drop or"),
+                html.A("Select Model File (.pt or .mo)")
+            ])
 
-            # Временно сохраняем загруженный файл
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[-1]) as tmp_file:
-                tmp_file.write(decoded)
-                tmp_model_path = tmp_file.name
+            # Обработаем reset
+            if ctx == 'reset-model-button':
+                # Пересоздаём модель и чистим assets
+                self.network_manager.model = CapsuleModel(
+                    capdim=self.network_manager.capdim,
+                    conv=self.network_manager.conv,
+                    in_channels=self.network_manager.in_channels
+                ).to(self.network_manager.device)
+                self.network_manager.model_loaded = False
+                self.network_manager.loading_complete = False
+                self.network_manager.preloaded_data.clear()
+                self.network_manager.preloaded_images.clear()
+                self.network_manager.activations = []
+                self.network_manager.current_loading_index = 0
 
-            try:
-                self.network_manager.load_model_from_file(tmp_model_path)
-                # Можно сразу запустить предзагрузку данных после загрузки модели
-                preload_thread = Thread(target=self.network_manager.preload_data, args=(10,))
-                preload_thread.start()
-                return html.Div(f'Model "{filename}" successfully loaded.')
-            except Exception as e:
-                logging.error(str(e))
-                return html.Div(f'Failed to load model: {str(e)}')
+                import glob
+                for path in glob.glob("assets/*.png"):
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
 
-        @self.app.callback(
-            Output('reset-status', 'children'),
-            Input('reset-model-button', 'n_clicks')
-        )
-        def reset_model(n_clicks):
-            if not n_clicks:
-                raise PreventUpdate
+                return (
+                    default_children,
+                    None,
+                    "",
+                    "Model reset. Ready for new configuration."
+                )
 
-            # Пересоздаем модель по текущим настройкам
-            self.network_manager.model = CapsuleModel(
-                capdim=self.network_manager.capdim,
-                conv=self.network_manager.conv,
-                in_channels=self.network_manager.in_channels
-            ).to(self.network_manager.device)
+            elif ctx == 'upload-model' and uploaded_content:
+                content_type, content_string = uploaded_content.split(',')
+                decoded = base64.b64decode(content_string)
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[-1]) as tmp:
+                    tmp.write(decoded)
+                    tmp_model_path = tmp.name
 
-            self.network_manager.model_loaded = False
-            self.network_manager.loading_complete = False
-            self.network_manager.preloaded_data.clear()
-            self.network_manager.preloaded_images.clear()
-            self.network_manager.activations = []
-            self.network_manager.current_loading_index = 0
-
-            import glob
-            for path in glob.glob("assets/*.png"):
                 try:
-                    os.remove(path)
+                    self.network_manager.load_model_from_file(tmp_model_path)
+                    Thread(target=self.network_manager.preload_data, args=(10,)).start()
+                    status_text = html.Div(f'Model "{filename}" successfully loaded.')
                 except Exception as e:
-                    logging.warning(f"Couldn't remove file {path}: {e}")
+                    logging.error(e)
+                    status_text = html.Div(f'Failed to load model: {e}')
 
-            return "Model reset. Ready for new configuration."
+                return (
+                    status_text,
+                    None,
+                    "",
+                    dash.no_update
+                )
+
+            raise PreventUpdate
 
         @self.app.callback(
             [Output('preload-progress', 'value'),
@@ -491,7 +514,7 @@ class GraphApp:
                     return 0, 100, "Waiting for preloading..."
 
     def run(self):
-        self.app.run_server(debug=True, dev_tools_hot_reload=False)
+        self.app.run_server(debug=True, dev_tools_hot_reload=False, use_reloader=False)
 
 
 if __name__ == "__main__":
