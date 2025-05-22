@@ -14,7 +14,7 @@
 
 ## About the Project
 
-This project is developed as part of my Bachelor's degree at Technical University in Kosice, under the guidance of Dominic Vranay.
+This project is developed as part of my Bachelor's degree at Technical University in Kosice, under the guidance of M.Eng. Dominik Vranay, PhD. and my supervisor prof. Ing. Peter Sinčák, CSc.
 
 ## Project Status
 
