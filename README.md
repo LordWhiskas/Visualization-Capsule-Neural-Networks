@@ -3,7 +3,7 @@
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/LordWhiskas/Visualization-Capsule-Neural-Networks)
 ![Status](https://img.shields.io/badge/status-in%20development-orange)
 
-![Python](https://img.shields.io/badge/python-3.11-blue.svg)
+![Python](https://img.shields.io/badge/python-3.9-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0.1-ee4c2c.svg)
 ![NetworkX](https://img.shields.io/badge/NetworkX-3.1-brightgreen.svg)
 ![Dash](https://img.shields.io/badge/Dash-2.14.1-blue.svg)
